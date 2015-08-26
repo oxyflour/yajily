@@ -185,7 +185,7 @@ function buildState(grammars) {
 }
 
 function printState(grammars, table, show) {
-	var { states, edges } = builded
+	var { states, edges } = table
 	states.forEach((item, state) => {
 		if (show && !show[state]) return
 
@@ -209,8 +209,8 @@ function parse(tokens, grammars, table, symbolConfig) {
 
 	if (!table) {
 		table = buildState(grammars)
-		console.log(`complied states:${builded.states.length}, `+
-			`rules:${builded.states.map(s => s.length).reduce((a, b) => a + b, 0)}`)
+		console.log(`complied states:${table.states.length}, `+
+			`rules:${table.states.map(s => s.length).reduce((a, b) => a + b, 0)}`)
 	}
 
 	var { states, edges } = table,

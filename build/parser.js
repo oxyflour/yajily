@@ -246,9 +246,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 	}
 
 	function printState(grammars, table, show) {
-		var _builded = builded;
-		var states = _builded.states;
-		var edges = _builded.edges;
+		var states = table.states;
+		var edges = table.edges;
 
 		states.forEach(function (item, state) {
 			if (show && !show[state]) return;
@@ -279,7 +278,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 		if (!table) {
 			table = buildState(grammars);
-			console.log('complied states:' + builded.states.length + ', ' + ('rules:' + builded.states.map(function (s) {
+			console.log('complied states:' + table.states.length + ', ' + ('rules:' + table.states.map(function (s) {
 				return s.length;
 			}).reduce(function (a, b) {
 				return a + b;
