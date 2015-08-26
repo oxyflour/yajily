@@ -1,6 +1,6 @@
 {
   "name": "yajily",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Yet Another Javascript Implement of Lexer and Yacc",
   "main": "index.js",
   "scripts": {
