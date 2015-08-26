@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+<title>Yajily Example: S-expression</title>
+</head>
+<body>
+<textarea id="input" onkeyup="go()" style="width:100%">-1 + 2 * 3 / (4 + 5) - 1 ^ 2 ^ 3 </textarea>
+<pre id="result"></pre>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.15/browser-polyfill.min.js"></script>
+<script src="build/lexer.js"></script>
+<script src="build/parser.js"></script>
+<script>
+
+// use this to string into array of tokens
+var actions = [
+
+	// operators
+	[/\^|\+|-|\*|\/|%|\(|\)/, function(m) {
+		return { type:m, value:m }
+	}],
+	// integers
+	[/\d+/, function(m) {
+		return { type:'NUM', value:parseInt(m) }
+	}],
+	// spaces, will be ignored
+	[/\s+/],
+
+	// lex string with escape characters
+	[/"/, function(m) {
+		this.push('string')
+		this.tempString = ''
+	}],
+	[/\\[\\ntr"]/, function(m) {
+		// should escape string here
+	}, 'string'],
+	[/[^\\"]*/, function(m) {
+		this.tempString += m
+	}, 'string'],
+	[/"/, function(m) {
+		this.pop()
+		// Uncomment the following line if you want the string content
+		// Here we just ignore it
+		//return { type:'STR', value:this.tempString }
+	}, 'string'],
+]
+
+var grammars = [
+
+	// the root of the language
+	['S', ['E']],
+
+	// ambiguous grammars are ok
+	// conflicts will be resolved with the precedence definitions when parsing
+	['E', ['(', 'E', ')'], function(_l, e, _r){ return e }],
+	['E', ['-', 'E'],      function(_s, e    ){ return [_s, e] }],
+	['E', ['E', '+', 'E'], function(e1, _, e2){ return [_, e1, e2] }],
+	['E', ['E', '-', 'E'], function(e1, _, e2){ return [_, e1, e2] }],
+	['E', ['E', '*', 'E'], function(e1, _, e2){ return [_, e1, e2] }],
+	['E', ['E', '/', 'E'], function(e1, _, e2){ return [_, e1, e2] }],
+	['E', ['E', '%', 'E'], function(e1, _, e2){ return [_, e1, e2] }],
+	['E', ['E', '^', 'E'], function(e1, _, e2){ return [_, e1, e2] }],
+	['E', ['NUM']],
+
+]
+
+// precedence and associations of operation, will be passed to the parser
+var precedence = {
+	'+': [11, 'left'],
+	'-': [11, 'left'],
+	'*': [12, 'left'],
+	'/': [12, 'left'],
+	'%': [12, 'left'],
+	'^': [20, 'right'],
+}
+
+// This builds the LALR(1) DFA and thus takes some time
+// You may want to save the result as json and load it later
+var table = parse.buildState(grammars)
+
+var format = function(node) {
+	return Array.isArray(node) ?
+		(node.map(format)) :
+		(node.type ? node.value : node)
+}
+
+var go = function() {
+	try {
+		var input = document.getElementById('input').value,
+			tokens = lex(input, actions),
+			tree = parse(tokens, grammars, table, precedence)
+		document.getElementById('result').innerHTML =
+			JSON.stringify(format(tree), null, 2)
+	}
+	catch (e) {
+		document.getElementById('result').innerHTML = e
+	}
+}
+
+go()
+
+</script>
+</body>
+</html>

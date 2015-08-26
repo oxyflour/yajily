@@ -1,0 +1,27 @@
+{
+  "name": "yajily",
+  "version": "0.0.1",
+  "description": "Yet Another Javascript Implement of Lexer and Yacc",
+  "main": "index.js",
+  "scripts": {
+    "build": "babel src --out-dir build",
+    "test": "test"
+  },
+  "devDependencies": {
+    "babel": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oxyflour/yajily.git"
+  },
+  "keywords": [
+    "compiler",
+    "javascript"
+  ],
+  "author": "Oxyflour Fang",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/oxyflour/yajily/issues"
+  },
+  "homepage": "https://github.com/oxyflour/yajily#readme"
+}
