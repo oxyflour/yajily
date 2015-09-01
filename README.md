@@ -19,7 +19,7 @@ var tokens = lex(input, [
 
 It takes some time for the parser to generate the LALR(1) table from the grammars. You may want to save the table and pass it to the the parser later.
 ```javascript
-var table = parse.buildState([
+var table = yajily.parse.build([
 	['S', ['E']],
 	['E', ['(', 'E', ')'], function(_l, e, _r){ return e }],
 	['E', ['-', 'E'],      function(_s, e    ){ return [_s, e] }],
@@ -35,7 +35,7 @@ var table = parse.buildState([
 
 Ambiguous grammars are ok. The table saves all the edges, and shift-reduce conflicts can be resolved with the precedence definitions when parsing.
 ```javascript
-var tree = parse(tokens, grammars, table, {
+var tree = yajily.parse(tokens, grammars, table, {
 	'+': [11, 'left'],
 	'-': [11, 'left'],
 	'*': [12, 'left'],
@@ -45,8 +45,8 @@ var tree = parse(tokens, grammars, table, {
 })
 ```
 
-See example.html for more details. Also see the following project for advanced uses.
-* to be added later
+See [example.html](https://github.com/oxyflour/yajily/blob/master/example.html) for more details. Also see the following project for advanced uses.
+* [yalls](https://github.com/oxyflour/yalls)
 
 ### todo
 * add a method to resolve reduce-reduce conflicts

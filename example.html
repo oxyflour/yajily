@@ -75,7 +75,7 @@ var precedence = {
 
 // This builds the LALR(1) DFA and thus takes some time
 // You may want to save the result as json and load it later
-var table = parse.buildState(grammars)
+var table = yajily.parse.build(grammars)
 
 var format = function(node) {
 	return Array.isArray(node) ?
@@ -86,8 +86,8 @@ var format = function(node) {
 var go = function() {
 	try {
 		var input = document.getElementById('input').value,
-			tokens = lex(input, actions),
-			tree = parse(tokens, grammars, table, precedence)
+			tokens = yajily.lex(input, actions),
+			tree = yajily.parse(tokens, grammars, table, precedence)
 		document.getElementById('result').innerHTML =
 			JSON.stringify(format(tree), null, 2)
 	}

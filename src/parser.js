@@ -24,7 +24,7 @@ function dict(keys, func) {
 	return d
 }
 
-function buildState(grammars) {
+function build(grammars) {
 
 	var indexMap = { }
 	grammars.forEach((prod, index) => {
@@ -119,7 +119,6 @@ function buildState(grammars) {
 			states = { [hash(init)]: init },
 			edges = { /* hash -> hash */ }
 
-		var tickStart = Date.now()
 		fix(data => {
 			each(states, (key, item, state) => {
 				if (edges[key]) return
@@ -136,12 +135,10 @@ function buildState(grammars) {
 			return Object.keys(states).length
 		})
 
-		console.log('compile: ', Date.now() - tickStart)
 		return { states, edges }
 	}
 
 	function merge(states, edges) {
-		var tickStart = Date.now()
 
 		// merge states with same index and position to build LALR(1) table
 		var newStates = { },
@@ -173,48 +170,30 @@ function buildState(grammars) {
 			})
 		})
 
-		console.log('merge: ', Date.now() - tickStart)
-		return {
-			states: values(newStates).map(item => values(item)),
-			edges: newEdges
-		}
+		var conflicts = 0
+		each(newEdges, (state, edge) => {
+			each(edge, (symbol, next) => {
+				if (Array.isArray(next))
+					conflicts ++
+			})
+		})
+		conflicts && console.warn(`${conflicts} conflicts found.`)
+
+		return newEdges
 	}
 
 	var { states, edges } = compile(grammars)
 	return merge(states, edges)
 }
 
-function printState(grammars, table, show) {
-	var { states, edges } = table
-	states.forEach((item, state) => {
-		if (show && !show[state]) return
-
-		console.log('[State: ' + state + ']')
-		item.forEach(i => {
-			var [index, position, follow] = i,
-				[left, right] = grammars[index]
-			right = right.slice()
-			right.splice(position, 0, ['.'])
-			console.log('  ' + left + ' -> ' +
-				right.join(' ') + ' [' + follow + ']')
-		})
-		if (edges[state]) for (var symbol in edges[state])
-			console.log(`  [${symbol} -> ${edges[state][symbol]}]`)
-	})
-}
-
-function parse(tokens, grammars, table, symbolConfig) {
+function parse(tokens, grammars, edges, symbolConfig) {
 	if (tokens[tokens.length - 1] !== undefined)
 		tokens.push(undefined)
 
-	if (!table) {
-		table = buildState(grammars)
-		console.log(`complied states:${table.states.length}, `+
-			`rules:${table.states.map(s => s.length).reduce((a, b) => a + b, 0)}`)
-	}
+	if (!edges)
+		edges = build(grammars)
 
-	var { states, edges } = table,
-		stack = [ 0 ]
+	var stack = [ 0 ]
 
 	function resolve(token, states) {
 		var lastToken = { }
@@ -242,8 +221,8 @@ function parse(tokens, grammars, table, symbolConfig) {
 			action = edges[state][token && token.type]
 
 		if (Array.isArray(action) && !(action = resolve(token, action))) {
+			var l = token && token.line || 0, c = token && token.col || 0
 			console.log('conflict: ')
-			var showStates = { [state]:1 }
 			action = edges[state][token && token.type]
 			action.filter(a => a[0] === 'r').forEach(a => {
 				var index = parseInt(a.substr(1)),
@@ -252,25 +231,18 @@ function parse(tokens, grammars, table, symbolConfig) {
 			})
 			action.filter(a => a[0] === 's').forEach(a => {
 				var state = parseInt(a.substr(1))
-				showStates[state] = 1
 				console.log('shift to state ' + state)
 			})
-			throw 'unresolve conflict!\n' +
+			throw ':' + l + ':' + c + ' unresolve conflict!\n' +
 				'token: `' + (token && token.value || token) + '` ' + 
-					(token && token.type ? '[' + token.type + '] ': ' ') + 'at '+
-					'line ' + (token && token.line || 0) + ', ' +
-					'col ' + (token && token.col || 0)
+					(token && token.type ? '[' + token.type + '] ': ' ')
 		}
 
 		if (!action) {
-			var item = states[state]
-			printState(grammars, table, { [state]:1 })
-			var stk = stack.slice(-5).map(t => '`' + (t && t.value || t) + '`')
-			throw 'syntax error!\n' +
+			var l = token && token.line || 0, c = token && token.col || 0
+			throw ':' + l + ':' + c + ' syntax error!\n' +
 				'unexpected token: `' + (token && token.value || token) + '` ' + 
-					(token && token.type ? '[' + token.type + '] ': ' ') + 'at '+
-					'line ' + (token && token.line || 0) + ', ' +
-					'col ' + (token && token.col || 0)
+					(token && token.type ? '[' + token.type + '] ': ' ')
 		}
 		else if (action[0] === 's') {
 			stack.push(token)
@@ -296,20 +268,17 @@ function parse(tokens, grammars, table, symbolConfig) {
 		}
 	}
 
-	var tickStart = Date.now()
 	tokens.forEach((token, index) => {
 		while(feed(token));
 	})
-	console.log('parse time: ', Date.now() - tickStart)
 	return stack[1]
 }
 
-parse.printState = printState
-parse.buildState = buildState
+parse.build = build
 
 if (typeof(module) !== 'undefined')
 	module.exports = parse
 else if (typeof(window) !== 'undefined')
-	window.parse = parse
+	(window.yajily || (window.yajily = { })).parse = parse
 
 })()

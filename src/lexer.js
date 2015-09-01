@@ -2,7 +2,6 @@
 
 // ref: https://github.com/aaditmshah/lexer/blob/master/lexer.js
 function lex(string, rules) {
-	var tickStart = Date.now()
 
 	// update rules
 	rules = rules.map(rule => {
@@ -45,13 +44,12 @@ function lex(string, rules) {
 	if (start < string.length) {
 		throw ('unexpected character near `' + string.substr(start, start + 10) + '`!')
 	}
-	console.log('lexer time: ', Date.now() - tickStart)
 	return tokens
 }
 
 if (typeof(module) !== 'undefined')
 	module.exports = lex
 else if (typeof(window) !== 'undefined')
-	window.lex = lex
+	(window.yajily || (window.yajily = { })).lex = lex
 
 })()
