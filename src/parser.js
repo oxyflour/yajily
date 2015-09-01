@@ -170,14 +170,20 @@ function build(grammars) {
 			})
 		})
 
-		var conflicts = 0
+		var rsConflicts = 0, rrConflicts = 0
 		each(newEdges, (state, edge) => {
 			each(edge, (symbol, next) => {
-				if (Array.isArray(next))
-					conflicts ++
+				if (Array.isArray(next)) {
+					if (next.some(s => s[0] === 's'))
+						rsConflicts ++
+					else
+						rrConflicts ++
+				}
 			})
 		})
-		conflicts && console.warn(`${conflicts} conflicts found.`)
+		if (rsConflicts || rrConflicts) console.warn(
+			`${rsConflicts} reduce-shift and ` +
+			`${rrConflicts} reduce-reduce conflicts found.`)
 
 		return newEdges
 	}
@@ -186,7 +192,7 @@ function build(grammars) {
 	return merge(states, edges)
 }
 
-function parse(tokens, grammars, edges, symbolConfig) {
+function parse(tokens, grammars, edges, precedence, recoverHanlder) {
 	if (tokens[tokens.length - 1] !== undefined)
 		tokens.push(undefined)
 
@@ -199,12 +205,12 @@ function parse(tokens, grammars, edges, symbolConfig) {
 		var lastToken = { }
 		stack.some((t, i) => {
 			var token = stack[stack.length - 1 - i]
-			return token && symbolConfig[token.type] && (lastToken = token)
+			return token && precedence[token.type] && (lastToken = token)
 		})
 		// TODO: resolve reduce-reduce conflicts
-		if (symbolConfig[lastToken.type] || symbolConfig[token.type]) {
-			var currentRule = symbolConfig[token.type] || [ 0 ],
-				lastRule = symbolConfig[lastToken.type] || [ 0 ]
+		if (precedence[lastToken.type] || precedence[token.type]) {
+			var currentRule = precedence[token.type] || [ 0 ],
+				lastRule = precedence[lastToken.type] || [ 0 ]
 			if (currentRule[0] > lastRule[0])
 				return states.filter(s => s[0] === 's')[0]
 			else if (lastRule[0] > currentRule[0])
@@ -236,6 +242,11 @@ function parse(tokens, grammars, edges, symbolConfig) {
 			throw ':' + l + ':' + c + ' unresolve conflict!\n' +
 				'token: `' + (token && token.value || token) + '` ' + 
 					(token && token.type ? '[' + token.type + '] ': ' ')
+		}
+
+		if (!action && recoverHanlder) {
+			if (recoverHanlder(token, stack, edges, feed))
+				return
 		}
 
 		if (!action) {

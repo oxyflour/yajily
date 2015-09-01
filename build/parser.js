@@ -225,13 +225,18 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 				});
 			});
 
-			var conflicts = 0;
+			var rsConflicts = 0,
+			    rrConflicts = 0;
 			each(newEdges, function (state, edge) {
 				each(edge, function (symbol, next) {
-					if (Array.isArray(next)) conflicts++;
+					if (Array.isArray(next)) {
+						if (next.some(function (s) {
+							return s[0] === 's';
+						})) rsConflicts++;else rrConflicts++;
+					}
 				});
 			});
-			conflicts && console.warn(conflicts + ' conflicts found.');
+			if (rsConflicts || rrConflicts) console.warn(rsConflicts + ' reduce-shift and ' + (rrConflicts + ' reduce-reduce conflicts found.'));
 
 			return newEdges;
 		}
@@ -244,7 +249,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 		return merge(states, edges);
 	}
 
-	function parse(tokens, grammars, edges, symbolConfig) {
+	function parse(tokens, grammars, edges, precedence, recoverHanlder) {
 		if (tokens[tokens.length - 1] !== undefined) tokens.push(undefined);
 
 		if (!edges) edges = build(grammars);
@@ -255,12 +260,12 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 			var lastToken = {};
 			stack.some(function (t, i) {
 				var token = stack[stack.length - 1 - i];
-				return token && symbolConfig[token.type] && (lastToken = token);
+				return token && precedence[token.type] && (lastToken = token);
 			});
 			// TODO: resolve reduce-reduce conflicts
-			if (symbolConfig[lastToken.type] || symbolConfig[token.type]) {
-				var currentRule = symbolConfig[token.type] || [0],
-				    lastRule = symbolConfig[lastToken.type] || [0];
+			if (precedence[lastToken.type] || precedence[token.type]) {
+				var currentRule = precedence[token.type] || [0],
+				    lastRule = precedence[lastToken.type] || [0];
 				if (currentRule[0] > lastRule[0]) return states.filter(function (s) {
 					return s[0] === 's';
 				})[0];else if (lastRule[0] > currentRule[0]) return states.filter(function (s) {
@@ -301,6 +306,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 					console.log('shift to state ' + state);
 				});
 				throw ':' + l + ':' + c + ' unresolve conflict!\n' + 'token: `' + (token && token.value || token) + '` ' + (token && token.type ? '[' + token.type + '] ' : ' ');
+			}
+
+			if (!action && recoverHanlder) {
+				if (recoverHanlder(token, stack, edges, feed)) return;
 			}
 
 			if (!action) {
