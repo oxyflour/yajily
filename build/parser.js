@@ -232,7 +232,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 					if (Array.isArray(next)) {
 						if (next.some(function (s) {
 							return s[0] === 's';
-						})) rsConflicts++;else rrConflicts++;
+						})) rsConflicts++;
+						if (next.filter(function (s) {
+							return s[0] === 'r';
+						}).length > 1) rrConflicts++;
 					}
 				});
 			});
@@ -257,24 +260,31 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 		var stack = [0];
 
 		function resolve(token, states) {
+			function getShiftState() {
+				var s = states.filter(function (s) {
+					return s[0] === 's';
+				});
+				return s[0];
+			}
+			function getReduceState() {
+				var s = states.filter(function (s) {
+					return s[0] === 'r';
+				});
+				// reduce with the grammar at first
+				s.sort(function (s1, s2) {
+					return parseInt(s1[1]) - parseInt(s2[1]);
+				});
+				return s[0];
+			}
 			var lastToken = {};
 			stack.some(function (t, i) {
 				var token = stack[stack.length - 1 - i];
 				return token && precedence[token.type] && (lastToken = token);
 			});
-			// TODO: resolve reduce-reduce conflicts
 			if (precedence[lastToken.type] || precedence[token.type]) {
 				var currentRule = precedence[token.type] || [0],
 				    lastRule = precedence[lastToken.type] || [0];
-				if (currentRule[0] > lastRule[0]) return states.filter(function (s) {
-					return s[0] === 's';
-				})[0];else if (lastRule[0] > currentRule[0]) return states.filter(function (s) {
-					return s[0] === 'r';
-				})[0];else if (lastRule[1] === 'left') return states.filter(function (s) {
-					return s[0] === 'r';
-				})[0];else if (lastRule[1] === 'right') return states.filter(function (s) {
-					return s[0] === 's';
-				})[0];
+				if (currentRule[0] > lastRule[0]) return getShiftState();else if (lastRule[0] > currentRule[0]) return getReduceState();else if (lastRule[1] === 'left') return getReduceState();else if (lastRule[1] === 'right') return getShiftState();
 			}
 		}
 

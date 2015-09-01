@@ -176,14 +176,14 @@ function build(grammars) {
 				if (Array.isArray(next)) {
 					if (next.some(s => s[0] === 's'))
 						rsConflicts ++
-					else
+					if (next.filter(s => s[0] === 'r').length > 1)
 						rrConflicts ++
 				}
 			})
 		})
 		if (rsConflicts || rrConflicts) console.warn(
 			`${rsConflicts} reduce-shift and ` +
-			`${rrConflicts} reduce-reduce conflicts found.`)
+			`${rrConflicts} reduce-reduce conflicts found`)
 
 		return newEdges
 	}
@@ -202,23 +202,32 @@ function parse(tokens, grammars, edges, precedence, recoverHanlder) {
 	var stack = [ 0 ]
 
 	function resolve(token, states) {
+		function getShiftState() {
+			var s = states.filter(s => s[0] === 's')
+			return s[0]
+		}
+		function getReduceState() {
+			var s = states.filter(s => s[0] === 'r')
+			// reduce with the grammar at first
+			s.sort((s1, s2) => parseInt(s1[1]) - parseInt(s2[1]))
+			return s[0]
+		}
 		var lastToken = { }
 		stack.some((t, i) => {
 			var token = stack[stack.length - 1 - i]
 			return token && precedence[token.type] && (lastToken = token)
 		})
-		// TODO: resolve reduce-reduce conflicts
 		if (precedence[lastToken.type] || precedence[token.type]) {
 			var currentRule = precedence[token.type] || [ 0 ],
 				lastRule = precedence[lastToken.type] || [ 0 ]
 			if (currentRule[0] > lastRule[0])
-				return states.filter(s => s[0] === 's')[0]
+				return getShiftState()
 			else if (lastRule[0] > currentRule[0])
-				return states.filter(s => s[0] === 'r')[0]
+				return getReduceState()
 			else if (lastRule[1] === 'left')
-				return states.filter(s => s[0] === 'r')[0]
+				return getReduceState()
 			else if (lastRule[1] === 'right')
-				return states.filter(s => s[0] === 's')[0]
+				return getShiftState()
 		}
 	}
 
