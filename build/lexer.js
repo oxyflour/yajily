@@ -26,10 +26,12 @@ var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = 
 		var stack = [];
 		// return { token, length }
 		function feed(string, start) {
-			var prefix = stack[stack.length - 1];
+			var prefix = stack[stack.length - 1],
+			    fullPrefix = '/' + stack.join('/');
 			var matches = rules.map(function (rule) {
 				rule.pattern.lastIndex = start;
-				return rule.prefix === prefix && rule.pattern.exec(string);
+				var shouldMatch = rule.prefix && rule.prefix[0] === '/' ? rule.prefix === fullPrefix : rule.prefix === prefix;
+				return shouldMatch && rule.pattern.exec(string);
 			});
 			var lengths = matches.map(function (match) {
 				return match && match.index === start ? match[0].length : 0;
