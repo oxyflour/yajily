@@ -170,20 +170,35 @@ function build(grammars) {
 			})
 		})
 
-		var rsConflicts = 0, rrConflicts = 0
+		// output info
+		var rsConflicts = [ ], rrConflicts = [ ]
 		each(newEdges, (state, edge) => {
 			each(edge, (symbol, next) => {
 				if (Array.isArray(next)) {
 					if (next.some(s => s[0] === 's'))
-						rsConflicts ++
+						rsConflicts.push({ state, symbol, next })
 					if (next.filter(s => s[0] === 'r').length > 1)
-						rrConflicts ++
+						rrConflicts.push({ state, symbol, next })
 				}
 			})
 		})
-		if (rsConflicts || rrConflicts) console.warn(
-			`${rsConflicts} reduce-shift and ` +
-			`${rrConflicts} reduce-reduce conflicts found`)
+		if (rsConflicts.length || rrConflicts.length) {
+			console.warn(
+				`${rsConflicts.length} reduce-shift and ` +
+				`${rrConflicts.length} reduce-reduce conflicts found`)
+			var reduceGrammars = { }
+			rsConflicts.forEach(info => {
+				info.next.filter(s => s[0] === 'r')
+					.map(s => parseInt(s.substr(1)))
+					.forEach(i => {
+						(reduceGrammars[i] || (reduceGrammars[i] = [ ])).push(info.symbol)
+					})
+			})
+			each(reduceGrammars, (index, symbols) => {
+				var grammar = grammars[index]
+				console.log(`${grammar[0]} -> ${grammar[1].join(' ')} { ${symbols.join(', ')} }`)
+			})
+		}
 
 		return newEdges
 	}

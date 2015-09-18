@@ -225,21 +225,38 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 				});
 			});
 
-			var rsConflicts = 0,
-			    rrConflicts = 0;
+			// output info
+			var rsConflicts = [],
+			    rrConflicts = [];
 			each(newEdges, function (state, edge) {
 				each(edge, function (symbol, next) {
 					if (Array.isArray(next)) {
 						if (next.some(function (s) {
 							return s[0] === 's';
-						})) rsConflicts++;
+						})) rsConflicts.push({ state: state, symbol: symbol, next: next });
 						if (next.filter(function (s) {
 							return s[0] === 'r';
-						}).length > 1) rrConflicts++;
+						}).length > 1) rrConflicts.push({ state: state, symbol: symbol, next: next });
 					}
 				});
 			});
-			if (rsConflicts || rrConflicts) console.warn(rsConflicts + ' reduce-shift and ' + (rrConflicts + ' reduce-reduce conflicts found.'));
+			if (rsConflicts.length || rrConflicts.length) {
+				console.warn(rsConflicts.length + ' reduce-shift and ' + (rrConflicts.length + ' reduce-reduce conflicts found'));
+				var reduceGrammars = {};
+				rsConflicts.forEach(function (info) {
+					info.next.filter(function (s) {
+						return s[0] === 'r';
+					}).map(function (s) {
+						return parseInt(s.substr(1));
+					}).forEach(function (i) {
+						(reduceGrammars[i] || (reduceGrammars[i] = [])).push(info.symbol);
+					});
+				});
+				each(reduceGrammars, function (index, symbols) {
+					var grammar = grammars[index];
+					console.log(grammar[0] + ' -> ' + grammar[1].join(' ') + ' { ' + symbols.join(', ') + ' }');
+				});
+			}
 
 			return newEdges;
 		}
