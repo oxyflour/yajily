@@ -24,6 +24,10 @@ function dict(keys, func) {
 	return d
 }
 
+function id(x) {
+	return x
+}
+
 function build(grammars) {
 
 	var indexMap = { }
@@ -186,15 +190,15 @@ function build(grammars) {
 			console.warn(
 				`${rsConflicts.length} reduce-shift and ` +
 				`${rrConflicts.length} reduce-reduce conflicts found`)
-			var reduceGrammars = { }
-			rsConflicts.forEach(info => {
+			var conflictGrammars = { }
+			rsConflicts.concat(rrConflicts).forEach(info => {
 				info.next.filter(s => s[0] === 'r')
 					.map(s => parseInt(s.substr(1)))
 					.forEach(i => {
-						(reduceGrammars[i] || (reduceGrammars[i] = [ ])).push(info.symbol)
+						(conflictGrammars[i] || (conflictGrammars[i] = [ ])).push(info.symbol)
 					})
 			})
-			each(reduceGrammars, (index, symbols) => {
+			each(conflictGrammars, (index, symbols) => {
 				var grammar = grammars[index]
 				console.log(`${grammar[0]} -> ${grammar[1].join(' ')} { ${symbols.join(', ')} }`)
 			})
