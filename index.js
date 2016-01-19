@@ -1,2 +1,2 @@
-exports.lex = require('./build/lexer.js')
-exports.parse = require('./build/parser.js')
+exports.lex = require('./src/lexer.js')
+exports.parse = require('./src/parser.js')
